@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 
 import { Form, FormAnnotation } from './styles'
 import { ArrowRight } from 'phosphor-react'
+import { useRouter } from 'next/router'
 
 // cria objeto do formulário no zod
 const claimUsernameFormSchema = z.object({
@@ -22,16 +23,20 @@ const claimUsernameFormSchema = z.object({
 type claimUsernameFormData = z.infer<typeof claimUsernameFormSchema>
 
 export function ClaimUsernameForm() {
+  const router = useRouter()
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<claimUsernameFormData>({
     resolver: zodResolver(claimUsernameFormSchema),
   })
 
+  // redireciona o usuário para continuar o cadastro na plataforma
   async function handleClaimUsername(data: claimUsernameFormData) {
-    console.log(data)
+    const { username } = data
+
+    await router.push(`/register?username=${username}`)
   }
 
   return (
@@ -44,7 +49,7 @@ export function ClaimUsernameForm() {
           crossOrigin=""
           {...register('username')}
         />
-        <Button size="sm" type="submit">
+        <Button size="sm" type="submit" disabled={isSubmitting}>
           Agendar
           <ArrowRight />
         </Button>
