@@ -1,13 +1,17 @@
 import { Button, Heading, MultiStep, Text, TextInput } from '@ignite-ui/react'
-import { Container, Form, FormError, Header } from './styles'
-import { ArrowRight } from 'phosphor-react'
 import { useForm } from 'react-hook-form'
+import { useRouter } from 'next/router'
+import { useEffect } from 'react'
+import { api } from '@/lib/axios'
+
+import { ArrowRight } from 'phosphor-react'
+import { Container, Form, FormError, Header } from './styles'
 
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useRouter } from 'next/router'
-import { useEffect } from 'react'
+import { AxiosError } from 'axios'
 
+// zod object schema
 const registerFormSchema = z.object({
   username: z
     .string()
@@ -19,6 +23,7 @@ const registerFormSchema = z.object({
   name: z.string().min(3, { message: 'Nome deve ter ao menos 3 letras' }),
 })
 
+// infere a tipagem do schema do zod
 type RegisterFormData = z.infer<typeof registerFormSchema>
 
 export default function Register() {
@@ -32,14 +37,30 @@ export default function Register() {
     resolver: zodResolver(registerFormSchema),
   })
 
+  // toda vez que o query param mudar, irá atualizar o valor do campo username
   useEffect(() => {
     if (router.query?.username) {
       setValue('username', String(router.query.username))
     }
   }, [router.query?.username, setValue])
 
+  // faz chamada a api para inserir usuário no BD
   async function handleRegister(data: RegisterFormData) {
-    console.log(data)
+    try {
+      await api.post('/users', {
+        name: data.name,
+        username: data.username,
+      })
+
+      await router.push('/register/connect-calendar')
+    } catch (err) {
+      if (err instanceof AxiosError && err?.response?.data?.message) {
+        alert(err.response.data.message)
+        return
+      }
+
+      console.error(err)
+    }
   }
 
   return (
