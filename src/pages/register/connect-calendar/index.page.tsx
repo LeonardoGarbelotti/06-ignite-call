@@ -1,12 +1,25 @@
 import { Button, Heading, MultiStep, Text } from '@ignite-ui/react'
+import { signIn, useSession } from 'next-auth/react'
+import { useRouter } from 'next/router'
 
-import { ArrowRight } from 'phosphor-react'
+import { ArrowRight, Check } from 'phosphor-react'
 import { Container, Header } from '../styles'
-import { ConnectBox, ConnectItem } from './styles'
-import { signIn } from 'next-auth/react'
+import { AuthError, ConnectBox, ConnectItem } from './styles'
 
 export default function Register() {
-  // async function handleRegister(data: any) { }
+  const router = useRouter()
+  const session = useSession()
+
+  // hasAuthError receive true or false deppending if there is permissions errors in query params
+  const hasAuthError = !!router.query.error
+
+  // isSignedIn receives the status of the user authentication
+  const isSignedIn = session.status === 'authenticated'
+
+  // uses signIn function from next-auth to sign in to Google
+  async function handleConnectCalendar() {
+    await signIn('google')
+  }
 
   return (
     <Container>
@@ -21,16 +34,30 @@ export default function Register() {
       <ConnectBox>
         <ConnectItem>
           <Text>Google Calendar</Text>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => signIn('google')}
-          >
-            Conectar
-            <ArrowRight />
-          </Button>
+
+          {isSignedIn ? (
+            <Button size="sm" disabled>
+              Conectado
+              <Check />
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleConnectCalendar}
+            >
+              Conectar
+              <ArrowRight />
+            </Button>
+          )}
         </ConnectItem>
-        <Button type="submit">
+        {hasAuthError && (
+          <AuthError size="sm">
+            Falha ao conectar ao Google, verifique se você habilitou as
+            permissões de acesso ao Google Calendar.
+          </AuthError>
+        )}
+        <Button type="submit" disabled={!isSignedIn}>
           Próximo passo
           <ArrowRight />
         </Button>
