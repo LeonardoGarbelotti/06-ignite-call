@@ -44,6 +44,14 @@ export function buildNextAuthOptions(
         // Permissions to the app were allowed. Continue to the application as usually.
         return true
       },
+
+      // allows to get more info of the session to use on front-end
+      async session({ session, user }) {
+        return {
+          ...session,
+          user,
+        }
+      },
     },
   }
 }
