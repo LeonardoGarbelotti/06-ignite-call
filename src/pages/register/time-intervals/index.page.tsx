@@ -20,6 +20,7 @@ import { Controller, useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { getWeekDays } from '@/utils/get-week-days'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { convertTimeStringToMinutes } from '@/utils/convert-time-string-to-minutes'
 
 const timeIntervalsFormSchema = z.object({
   intervals: z
@@ -31,14 +32,44 @@ const timeIntervalsFormSchema = z.object({
         endTime: z.string(),
       }),
     )
+    // make sure it's an array with 7 days of the week
     .length(7)
+    // filter only selected days
     .transform((intervals) => intervals.filter((interval) => interval.enabled))
+    // refine to make sure the user select at least one day
     .refine((intervals) => intervals.length > 0, {
       message: 'Selecione pelo menos um dia da semana!',
-    }),
+    })
+    // transform the hour string into minutes (easier to save on database)
+    .transform((intervals) => {
+      return intervals.map((interval) => {
+        return {
+          weekDay: interval.weekDay,
+          startTimeInMinutes: convertTimeStringToMinutes(interval.startTime),
+          endTimeInMinutes: convertTimeStringToMinutes(interval.endTime),
+        }
+      })
+    })
+    // refine to make sure it have one hour of difference between start and end times.
+    .refine(
+      (intervals) => {
+        return intervals.every(
+          (interval) =>
+            interval.endTimeInMinutes - 60 >= interval.startTimeInMinutes,
+        )
+      },
+      {
+        message:
+          'O horário de término deve ser pelo menos uma hora distante do início!',
+      },
+    ),
 })
 
-type TimeIntervalsFormData = z.infer<typeof timeIntervalsFormSchema>
+// infer the type of the schema before all transformations and refines
+type TimeIntervalsFormInput = z.input<typeof timeIntervalsFormSchema>
+
+// infer the type of the schema after all transformations and refines
+type TimeIntervalsFormOutput = z.output<typeof timeIntervalsFormSchema>
 
 export default function TimeIntervals() {
   const {
@@ -47,7 +78,7 @@ export default function TimeIntervals() {
     control,
     watch,
     formState: { isSubmitting, errors },
-  } = useForm({
+  } = useForm<TimeIntervalsFormInput, any, TimeIntervalsFormOutput>({
     resolver: zodResolver(timeIntervalsFormSchema),
     defaultValues: {
       intervals: [
@@ -72,7 +103,7 @@ export default function TimeIntervals() {
 
   const intervals = watch('intervals')
 
-  async function handleSetTimeIntervals(data: TimeIntervalsFormData) {
+  async function handleSetTimeIntervals(data: TimeIntervalsFormOutput) {
     console.log(data)
   }
 
@@ -132,7 +163,7 @@ export default function TimeIntervals() {
         </IntervalsContainer>
 
         {errors.intervals && (
-          <FormError size="sm">{errors.intervals.message}</FormError>
+          <FormError size="sm">{errors.intervals.root?.message}</FormError>
         )}
 
         <Button type="submit" disabled={isSubmitting}>
