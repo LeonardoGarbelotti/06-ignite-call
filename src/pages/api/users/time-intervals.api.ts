@@ -37,28 +37,27 @@ export default async function handler(
   const { intervals } = timeIntervalsBodySchema.parse(req.body)
 
   // workaround because SQLite doesn't support createMany
-  await Promise.all(
-    intervals.map((interval) => {
-      return prisma.userTimeInterval.create({
-        data: {
-          week_day: interval.weekDay,
-          time_start_in_minutes: interval.startTimeInMinutes,
-          time_end_in_minutes: interval.endTimeInMinutes,
-          user_id: session.user?.id,
-        },
-      })
-    }),
-  )
+  // await Promise.all(
+  //   intervals.map((interval) => {
+  //     return prisma.userTimeInterval.create({
+  //       data: {
+  //         week_day: interval.weekDay,
+  //         time_start_in_minutes: interval.startTimeInMinutes,
+  //         time_end_in_minutes: interval.endTimeInMinutes,
+  //         user_id: session.user?.id,
+  //       },
+  //     })
+  //   }),
+  // )
 
-  // SQLite doesn't support createMany. After changing to Postgres or SQL, use:
-  // await prisma.userTimeInterval.createMany({
-  //   data: intervals.map((interval) => ({
-  //     week_day: interval.weekDay,
-  //     time_start_in_minutes: interval.startTimeInMinutes,
-  //     time_end_in_minutes: interval.endTimeInMinutes,
-  //     user_id: session.user?.id,
-  //   })),
-  // })
+  await prisma.userTimeInterval.createMany({
+    data: intervals.map((interval) => ({
+      week_day: interval.weekDay,
+      time_start_in_minutes: interval.startTimeInMinutes,
+      time_end_in_minutes: interval.endTimeInMinutes,
+      user_id: session.user?.id,
+    })),
+  })
 
   return res.status(201).end()
 }
